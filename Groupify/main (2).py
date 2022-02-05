@@ -1,9 +1,14 @@
 import requests
 import base64
-from flask import Flask, request
+from flask import Flask, request, redirect
 from urllib.parse import urlencode
+from flask_cors import CORS, cross_origin
+import json
 
 app = Flask(__name__)
+
+cors = CORS(app) 
+
 
 base_url_accounts = "https://accounts.spotify.com/"
 base_url = "https://api.spotify.com/v1/"
@@ -17,19 +22,20 @@ basic = client_id + ":" + client_secret
 base64_byte = base64.urlsafe_b64encode(basic.encode("utf-8"))
 basic_64 = str(base64_byte, "utf-8")
 
-
-
 def refresh_access(refresh_token):
     url = base_url_accounts + "api/token"
 
     
     response = requests.post(url, headers={"Authorization": f"Basic {basic_64}"}, data={"grant_type": "refresh_token", "refresh_token": refresh_token})
 
-    print(response.json())
-    return response.json()["access_token"] #assume that there are no errors with the refresh token big bad
+    if (response.status != 200):
+        return None
+    
+    return response.json()["access_token"] 
 
-@app.route("/", methods=["GET"])
-def route():
+
+@app.route("/api/getAuthLink", methods=["GET"])
+def getAuthLink():
     url = base_url_accounts + "authorize?"
     url += urlencode(
                 {
@@ -38,27 +44,34 @@ def route():
                "scope": "user-read-playback-state user-modify-playback-state user-read-private user-read-email",
                "redirect_uri": redirect_uri,
                })
-    return f'<a href="{url}">Login to spotify</a>'
+    return json.dumps({"url": url})
 
-
-@app.route("/callback", methods=["GET"])
+@app.route("/api/callback", methods=["GET"])
 def callback():
     code = request.args.get("code")
     if (not code):
-        return "Error"
+        return redirect("http://99.235.37.139:3000/")
 
     url = base_url_accounts + "api/token"
 
 
     response = requests.post(url, data={"grant_type": "authorization_code", "code": code, "redirect_uri": redirect_uri}, headers={"Authorization": f"Basic {basic_64}"})
+
+    if (response.status != 200):
+        return redirect("http://99.235.37.139:3000/")
     
     refresh_token = response.json()["refresh_token"]
     print(response.json())
 
 
     access_token = refresh_access(refresh_token)
-    print(access_token)
+    if (not access_token):
+        return redirect("http://99.235.37.139:3000/")
 
+    return access_token
+
+
+"""
     url = base_url + "me/player"
     response = requests.get(url, headers={"Authorization": f"Bearer {access_token}"})
 
@@ -67,11 +80,8 @@ def callback():
     print(response.json())
 
     return response.json()
-
-   
+"""
 
     
-
-
 if __name__ == "__main__":
-    app.run(debug=True, port=8000, host="0.0.0.0")
+    app.run(debug=True, port=8888, host="0.0.0.0")
