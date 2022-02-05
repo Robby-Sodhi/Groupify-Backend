@@ -9,6 +9,7 @@ app = Flask(__name__)
 base_url = "https://accounts.spotify.com/"
 redirect_uri = "http://localhost:8000/callback"
 client_id = "73d6ad5ecca2451482fb1408eb34e231"
+client_secret = "58a58b6409934e87a2d08fba82fa5019"
 @app.route("/", methods=["GET"])
 def route():
     url = base_url + "authorize?"
@@ -30,19 +31,15 @@ def callback():
     url = base_url + "api/token"
 
 
-    client_id_b64 = client_id.encode('ascii')
-    client_id_b64 = client_id_b64.b64encode(client_id_b64)
+    basic = client_id + ":" + client_secret
+
+    urlSafeEncodedBytes = base64.urlsafe_b64encode(basic.encode("utf-8"))
+    urlSafeEncodedStr = str(urlSafeEncodedBytes, "utf-8")
 
 
-    response = requests.post(url, data={"grant_type": "authorization_code", "code": code, "redirect_uri": redirect_uri}, headers={"Authorization": f"Authorization: Basic <{client_id_b64}:{'58a58b6409934e87a2d08fba82fa5019'}>"})
+
+    response = requests.post(url, data={"grant_type": "authorization_code", "code": code, "redirect_uri": redirect_uri}, headers={"Authorization": f"Basic {urlSafeEncodedStr}"})
     return response.text
-
-
-
-
-
-
-
 
 
 if __name__ == "__main__":
