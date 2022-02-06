@@ -1,9 +1,11 @@
+from email.quoprimime import body_check
 import requests
 import base64
 from flask import Flask, request
 from urllib.parse import urlencode
 from flask_cors import CORS, cross_origin
 import json
+
 
 app = Flask(__name__)
 
@@ -13,8 +15,8 @@ cors = CORS(app)
 base_url_accounts = "https://accounts.spotify.com/"
 base_url = "https://api.spotify.com/v1/"
 redirect_uri = "http://99.235.37.139:3000/callback"
-client_id = "73d6ad5ecca2451482fb1408eb34e231"
-client_secret = "58a58b6409934e87a2d08fba82fa5019"
+client_id = "2d5d486887844bee875c55651396936d"
+client_secret = "d1c98e90c71c4c639c62283822d7ed6b"
 
 
 
@@ -54,7 +56,6 @@ def callback():
 
     code = json.loads(request.data)
     code = code["code"]
-    print(code)
     if (not code):
         return json.dumps(error_obj)
 
@@ -62,8 +63,6 @@ def callback():
 
 
     response = requests.post(url, data={"grant_type": "authorization_code", "code": code, "redirect_uri": redirect_uri}, headers={"Authorization": f"Basic {basic_64}"})
-
-    print(response.json())
 
     if (response.status_code != 200):
         return json.dumps(error_obj)
@@ -78,11 +77,26 @@ def callback():
     return json.dumps({"access_token": access_token, "refresh_token": refresh_token})
 
 
+@app.route("/api/get_user", methods=["GET"])
+def get_user():
+    refresh_token = json.loads(request.data)["refresh_token"]
+    refresh_token = refresh_access(refresh_token)
+    access_token = refresh_access(refresh_token)
+    if(not access_token):
+        return json.dumps(error_obj)
+    url = base_url + "users/user_id"
+    response = request.get(url, headers={"Authorization": f"Bearer {access_token}"})
+
+    return json.dumps(response.json())
+    
 
 @app.route("/api/get_current_song", methods=["POST"])
 def get_current_song():
 
-    refresh_token = json.loads(request.data)["refresh_token"]
+
+    #print(request.data)
+    refresh_token = json.loads(request.data)
+    refresh_token = refresh_token["refresh_token"]
     access_token = refresh_access(refresh_token)
     if (not access_token):
         return json.dumps(error_obj)
@@ -90,11 +104,45 @@ def get_current_song():
     response = requests.get(url, headers={"Authorization": f"Bearer {access_token}"})
 
 
-    print(url)
-    print(response.json())
-
+    #print("THE RESPONSE: " + response.text)
     return json.dumps(response.json())
 
-    
+@app.route("/api/change_song", methods=["POST"])
+def change_song():
+    data = json.loads(request.data)
+   # print(data)
+    # if (not "track" in data or not "progress_ms" in data or not "refresh_token" in data):
+    #    return json.dumps({"error": "1"})
+    #     return json.dumps(error_obj)
+
+    refresh_token = data["refresh_token"]
+    access_token = refresh_access(refresh_token)
+    if (not access_token):
+        return json.dumps({"error": "2"})
+        return json.dumps(error_obj)
+    track = data["track"]
+    progress_ms = data["progress_ms"]
+
+    url = base_url + "me/player/play"
+
+
+
+    data = {
+        "uris": [track],
+        "position_ms": progress_ms
+    }
+
+    data = json.dumps(data)
+    response = requests.put(url, headers={"Authorization": f"Bearer {access_token}"}, data=data)
+
+
+    data = {
+  "position_ms": progress_ms
+    }
+
+    url = base_url + "me/player/seek"
+    response = requests.put(url, headers={"Authorization": f"Bearer {access_token}"}, data=data)
+
+    return json.dumps({"status": True})
 if __name__ == "__main__":
     app.run(debug=True, port=8888, host="0.0.0.0")
