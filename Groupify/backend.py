@@ -15,8 +15,8 @@ cors = CORS(app)
 base_url_accounts = "https://accounts.spotify.com/"
 base_url = "https://api.spotify.com/v1/"
 redirect_uri = "http://99.235.37.139:3000/callback"
-client_id = "2d5d486887844bee875c55651396936d"
-client_secret = "d1c98e90c71c4c639c62283822d7ed6b"
+client_id = "b42eff46f6fd44ceab76c34da5a0416d"
+client_secret = "1830d199e1f946af83f647adfbf01552"
 
 
 
