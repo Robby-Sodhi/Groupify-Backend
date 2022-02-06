@@ -15,8 +15,8 @@ cors = CORS(app)
 base_url_accounts = "https://accounts.spotify.com/"
 base_url = "https://api.spotify.com/v1/"
 redirect_uri = "http://99.235.37.139:3000/callback"
-client_id = "b42eff46f6fd44ceab76c34da5a0416d"
-client_secret = "1830d199e1f946af83f647adfbf01552"
+client_id = "30a0e6ce238246da96657ace1b3b180f"
+client_secret = "c946aae691d14adcb0ca553656bcb87b"
 
 
 
@@ -77,15 +77,17 @@ def callback():
     return json.dumps({"access_token": access_token, "refresh_token": refresh_token})
 
 
-@app.route("/api/get_user", methods=["GET"])
+@app.route("/api/get_user", methods=["POST"])
 def get_user():
-    refresh_token = json.loads(request.data)["refresh_token"]
-    refresh_token = refresh_access(refresh_token)
+    print(request.data)
+    refresh_token = json.loads(request.data)
+    refresh_token = refresh_token["refresh_token"]
     access_token = refresh_access(refresh_token)
+
     if(not access_token):
         return json.dumps(error_obj)
-    url = base_url + "users/user_id"
-    response = request.get(url, headers={"Authorization": f"Bearer {access_token}"})
+    url = base_url + "me"
+    response = requests.get(url, headers={"Authorization": f"Bearer {access_token}"})
 
     return json.dumps(response.json())
     
